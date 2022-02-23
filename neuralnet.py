@@ -255,14 +255,20 @@ MODELS = {
 }
 
 
-def load_model(model_type, checkpoint, device, **kwargs):
-    # build model
-    model = MODELS[model_type](**kwargs).to(device)
-    model.eval()
-
-    # load checkpoint
-    state_dicts = torch.load(checkpoint, map_location=device)
-    model.load_state_dict(state_dicts['model'])
+def load_model(load_type, model_file, model_type, device, **kwargs):
+    if load_type == 'pytorch':
+        # build model
+        model = MODELS[model_type](**kwargs).to(device)
+        model.eval()
+        # load model file
+        state_dicts = torch.load(model_file, map_location=device)
+        model.load_state_dict(state_dicts['model'])
+    elif load_type == 'jit':
+        model = torch.jit.load(model_file, map_location=device)
+        if hasattr(torch.jit, 'optimize_for_inference'):
+            model = torch.jit.optimize_for_inference(model)
+    else:
+        assert 0, f"Unsupported load: {load_type}"
     return model
 
 

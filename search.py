@@ -7,12 +7,13 @@ from collections import defaultdict
 class MCTS:
     "Monte Carlo tree searcher. First rollout the tree then choose a move."
 
-    def __init__(self, visit_func, c_puct=1.1):
+    def __init__(self, visit_func, c_puct=1.1, fpu_reduction=0.1):
         self.Q = defaultdict(int)  # total reward of each node
         self.N = defaultdict(int)  # total visit count for each node
         self.children = dict()  # children of each node
         self.visit_func = visit_func
         self.c_puct = c_puct
+        self.fpu_reduction = fpu_reduction
 
     def choose(self, node):
         "Choose the best successor of node. (Choose a move in the game)"
@@ -64,22 +65,28 @@ class MCTS:
 
     def _puct_select(self, node):
         "Select a child of node, balancing exploration & exploitation"
-        sqrt_N_vertex = math.sqrt(self.N[node])
+        puct_factor = self.c_puct * math.sqrt(self.N[node])
+
+        # children_policy_sum = sum(node.policy(c) for c in self.children[node])
+        # init_q_reduction = self.fpu_reduction * math.sqrt(children_policy_sum)
 
         def puct(c):
             "Predictor upper confidence bound for trees"
-            u = self.c_puct * node.policy(c) * sqrt_N_vertex / (1 + self.N[c])
+            u = puct_factor * node.policy(c) / (1 + self.N[c])
 
-            if c not in self.children:
-                return u  # child has not been explored
+            if c in self.children:  # child that has been explored for at least once
+                q = self.Q[c] / self.N[c]
+            else:  # child that has not been explored
+                # q = self.Q[node] / self.N[node] - init_q_reduction
+                q = 0
 
-            q = self.Q[c] / self.N[c]
-            return q + u  # child that has been explored for at least once
+            return q + u
 
         return max(self.children[node], key=puct)
 
 
 class Board():
+    DIRECTIONS = [(0, 1), (1, 0), (1, -1), (1, 1)]
     ZOBRIST_TABLE = [[[
         np.random.randint(low=-9223372036854775808, high=9223372036854775807, dtype=np.int64)
         for _ in range(32)
@@ -121,7 +128,7 @@ class Board():
         self.side_to_move = 1 - self.side_to_move
 
     def move(self, x, y):
-        assert self.is_legal(x, y), "Pos is not legal!"
+        assert self.is_legal(x, y), f"Pos ({x},{y}) is not legal!"
         self.board[self.side_to_move, y, x] = 1
         self.hash ^= Board.ZOBRIST_TABLE[self.side_to_move][y][x]
         if self.ply > 0:
@@ -146,35 +153,17 @@ class Board():
     def is_legal(self, x, y):
         return self.is_inboard(x, y) and self.board[0, y, x] == 0 and self.board[1, y, x] == 0
 
-    def get_data(self):
-        if not self.fixed_side_input and self.side_to_move == 1:
-            board_input = np.flip(self.board, axis=0).copy()
-        else:
-            board_input = self.board
-
-        return {
-            'board_size':
-            (torch.FloatTensor(self.board.shape[1]), torch.FloatTensor(self.board.shape[2])),
-            'board_input':
-            torch.from_numpy(board_input),
-            'stm_input':
-            torch.FloatTensor([-1 if self.side_to_move == 0 else 1])
-        }
-
-    def is_terminal(self):
-        "Returns True if the node has no children"
-        return self.is_draw() or self.has_five()
-
     def is_draw(self):
+        "Returns true if the board has been fulfilled"
         return self.ply == self.width * self.height
 
     def has_five(self):
+        "Returns true if last move on board has made a five connection"
         if self.ply == 0:
             return False
 
         x, y, stm = self.move_history[-1]
-        DIRECTIONS = [(0, 1), (1, 0), (1, -1), (1, 1)]
-        for dx, dy in DIRECTIONS:
+        for dx, dy in Board.DIRECTIONS:
             count = 1
             for i in range(1, 5):
                 xi, yi = x - i * dx, y - i * dy
@@ -193,6 +182,10 @@ class Board():
 
         return False
 
+    def is_terminal(self):
+        "Returns True if the node has no children"
+        return self.is_draw() or self.has_five()
+
     def expand(self, visit_func):
         "Expand a node with visit function."
         if self.is_draw():
@@ -206,8 +199,8 @@ class Board():
             self.value = value.item()
             self.policy_prior = dict()
 
-            # find all possible successors of this board state
             children = set()
+            # find all possible successors of this board state
             for y in range(self.height):
                 for x in range(self.width):
                     if self.board[0, y, x] == 0 and self.board[1, y, x] == 0:
@@ -224,6 +217,19 @@ class Board():
     def policy(self, child):
         "Returns policy prior for a child node"
         return self.policy_prior.get(child, 0)
+
+    def get_data(self):
+        "Returns data for neural-net in pytorch format"
+        if not self.fixed_side_input and self.side_to_move == 1:
+            board_input = np.flip(self.board, axis=0).copy()
+        else:
+            board_input = self.board
+
+        return {
+            'board_size': torch.tensor(self.board.shape[1:], dtype=torch.int8),
+            'board_input': torch.from_numpy(board_input),
+            'stm_input': torch.FloatTensor([-1 if self.side_to_move == 0 else 1])
+        }
 
     def __hash__(self):
         "Nodes must be hashable"

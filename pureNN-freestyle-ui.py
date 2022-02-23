@@ -31,8 +31,15 @@ def input_move():
     return ord(x) - ord('A'), int(y) - 1
 
 
-def test_play(checkpoint, device, model_type, model_args, board_width, board_height, **kwargs):
-    model = nn.load_model(model_type, checkpoint, device, **model_args)
+def test_play(model_file,
+              load_type,
+              device,
+              board_width,
+              board_height,
+              model_type=None,
+              model_args={},
+              **kwargs):
+    model = nn.load_model(load_type, model_file, model_type, device, **model_args)
     board = Board(board_width, board_height)
 
     while not board.is_terminal():
@@ -52,15 +59,16 @@ def test_play(checkpoint, device, model_type, model_args, board_width, board_hei
 
 if __name__ == "__main__":
     args = {
-        'checkpoint': './data/ckpt_resnet_basic-nostm_15b192fv0_00500000.pth',
+        'model_file': './data/export_jit_resnet_basic-nostm_15b192fv0_00500000.pth',
+        'load_type': 'jit',
         'device': 'cpu',
-        'model_type': 'resnet',
-        'model_args': {
-            'num_blocks': 15,
-            'dim_feature': 192,
-            'head_type': 'v0',
-            'input_type': 'basic-nostm',
-        },
+        # 'model_type': 'resnet',
+        # 'model_args': {
+        #     'num_blocks': 15,
+        #     'dim_feature': 192,
+        #     'head_type': 'v0',
+        #     'input_type': 'basic-nostm',
+        # },
         'board_width': 15,
         'board_height': 15,
     }

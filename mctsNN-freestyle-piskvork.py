@@ -10,9 +10,9 @@ def visit(model, data, device):
     return winrate, policy
 
 
-def main(checkpoint, device, model_type, model_args, **kwsearchargs):
+def main(model_file, load_type, device, model_type=None, model_args={}, **kwsearchargs):
     start_time = time.time()
-    model = nn.load_model(model_type, checkpoint, device, **model_args)
+    model = nn.load_model(load_type, model_file, model_type, device, **model_args)
     board = None
 
     def init():
@@ -79,15 +79,16 @@ def main(checkpoint, device, model_type, model_args, **kwsearchargs):
 
 if __name__ == "__main__":
     args = {
-        'checkpoint': './data/ckpt_resnet_basic-nostm_15b192fv0_00500000.pth',
+        'model_file': './data/export_jit_resnet_basic-nostm_6b96fv0_00400000.pth',
+        'load_type': 'jit',
         'device': 'cpu',
-        'model_type': 'resnet',
-        'model_args': {
-            'num_blocks': 15,
-            'dim_feature': 192,
-            'head_type': 'v0',
-            'input_type': 'basic-nostm',
-        },
+        # 'model_type': 'resnet',
+        # 'model_args': {
+        #     'num_blocks': 15,
+        #     'dim_feature': 192,
+        #     'head_type': 'v0',
+        #     'input_type': 'basic-nostm',
+        # },
         'c_puct': 1.1,
     }
     main(**args)
