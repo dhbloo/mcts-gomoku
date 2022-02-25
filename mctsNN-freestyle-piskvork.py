@@ -1,9 +1,8 @@
 import time
 
 
-def visit(model, data, device):
-    import neuralnet as nn
-    value, policy = nn.eval_model(model, data, device)
+def visit(model, data):
+    value, policy = model(data)
     winrate = (value[0] - value[1] + 1) / 2
     return winrate, policy
 
@@ -45,7 +44,7 @@ def main(model_file, load_type, device, **kwsearchargs):
 
         nonlocal board, start_time
         assert board is not None
-        mcts = MCTS(lambda data: visit(model, data, device), **kwsearchargs)
+        mcts = MCTS(lambda data: visit(model, data), **kwsearchargs)
         turn_time = min(pp.info_timeout_turn / 1000, pp.info_time_left / 7 / 1000) - 0.03
 
         if start_time is not None:
@@ -84,8 +83,8 @@ def main(model_file, load_type, device, **kwsearchargs):
 
 if __name__ == "__main__":
     args = {
-        'model_file': './data/export_jit_resnet_basic-nostm_6b96fv0_00400000.pth',
-        'load_type': 'jit',
+        'model_file': './data/export_onnx_resnet_basic-nostm_20b256fv0_01000000.onnx',
+        'load_type': 'onnx',
         'device': 'cpu',
     }
     main(**args)

@@ -3,16 +3,16 @@ import neuralnet as nn
 from search import Board
 
 
-def next_move(board, model, data, device):
-    value, policy = nn.eval_model(model, data, device)
+def next_move(board, model, data):
+    value, policy = model(data)
     policy = policy.flatten()
 
     # calc winrate, drawrate and best valid move
     winrate = (value[0] - value[1] + 1) / 2
     drawrate = value[2]
 
-    movelist = policy.argsort(descending=True)
-    for move in movelist:
+    movelist = policy.argsort()
+    for move in reversed(movelist):
         move_x, move_y = move % board.width, move // board.width
         if board.is_legal(move_x, move_y):
             bestmove = move
@@ -39,7 +39,7 @@ def test_play(model_file, load_type, device, board_width, board_height):
         move = input_move()
         if move is None:
             tic = time.time()
-            winrate, drawrate, move = next_move(board, model, board.get_data(), device)
+            winrate, drawrate, move = next_move(board, model, board.get_data())
             toc = time.time()
             message = (f"winrate: {winrate:.4f}, drawrate: {drawrate:.4f}, " +
                        f"bestmove: {chr(move[0] + ord('A'))}{move[1] + 1}, " +
@@ -51,8 +51,8 @@ def test_play(model_file, load_type, device, board_width, board_height):
 
 if __name__ == "__main__":
     args = {
-        'model_file': './data/export_jit_resnet_basic-nostm_15b192fv0_00500000.pth',
-        'load_type': 'jit',
+        'model_file': './data/export_onnx_resnet_basic-nostm_20b256fv0_01000000.onnx',
+        'load_type': 'onnx',
         'device': 'cpu',
         'board_width': 15,
         'board_height': 15,

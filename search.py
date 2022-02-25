@@ -228,9 +228,9 @@ class Board():
             board_input = self.board
 
         return {
-            'board_size': torch.tensor(self.board.shape[1:], dtype=torch.int8),
-            'board_input': torch.from_numpy(board_input),
-            'stm_input': torch.FloatTensor([-1 if self.side_to_move == 0 else 1])
+            'board_size': np.array(self.board.shape[1:], dtype=np.int8),
+            'board_input': board_input,
+            'stm_input': -1 if self.side_to_move == 0 else 1
         }
 
     def __hash__(self):

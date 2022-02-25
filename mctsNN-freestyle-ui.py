@@ -3,8 +3,8 @@ import neuralnet as nn
 from search import Board, MCTS
 
 
-def visit(model, data, device):
-    value, policy = nn.eval_model(model, data, device)
+def visit(model, data):
+    value, policy = model(data)
     winrate = (value[0] - value[1] + 1) / 2
     return winrate, policy
 
@@ -26,7 +26,7 @@ def test_play(model_file,
               **kwsearchargs):
     model = nn.load_model(load_type, model_file, device)
     board = Board(board_width, board_height)
-    mcts = MCTS(lambda data: visit(model, data, device), **kwsearchargs)
+    mcts = MCTS(lambda data: visit(model, data), **kwsearchargs)
 
     while not board.is_terminal():
         print(board)
@@ -51,8 +51,8 @@ def test_play(model_file,
 
 if __name__ == "__main__":
     args = {
-        'model_file': './data/export_jit_resnet_basic-nostm_6b96fv0_00400000.pth',
-        'load_type': 'jit',
+        'model_file': './data/export_onnx_resnet_basic-nostm_20b256fv0_01000000.onnx',
+        'load_type': 'onnx',
         'device': 'cpu',
         'board_width': 15,
         'board_height': 15,
