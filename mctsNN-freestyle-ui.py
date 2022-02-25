@@ -22,11 +22,9 @@ def test_play(model_file,
               device,
               board_width,
               board_height,
-              model_type=None,
-              model_args={},
               turn_time=1,
               **kwsearchargs):
-    model = nn.load_model(load_type, model_file, model_type, device, **model_args)
+    model = nn.load_model(load_type, model_file, device)
     board = Board(board_width, board_height)
     mcts = MCTS(lambda data: visit(model, data, device), **kwsearchargs)
 
@@ -56,13 +54,6 @@ if __name__ == "__main__":
         'model_file': './data/export_jit_resnet_basic-nostm_6b96fv0_00400000.pth',
         'load_type': 'jit',
         'device': 'cpu',
-        # 'model_type': 'resnet',
-        # 'model_args': {
-        #     'num_blocks': 15,
-        #     'dim_feature': 192,
-        #     'head_type': 'v0',
-        #     'input_type': 'basic-nostm',
-        # },
         'board_width': 15,
         'board_height': 15,
         'turn_time': 5,

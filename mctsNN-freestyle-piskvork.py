@@ -8,14 +8,14 @@ def visit(model, data, device):
     return winrate, policy
 
 
-def main(model_file, load_type, device, model_type=None, model_args={}, **kwsearchargs):
+def main(model_file, load_type, device, **kwsearchargs):
     # load modules after recording start time
     start_time = time.time()
     import pisqpipe as pp
     import neuralnet as nn
     from search import Board, MCTS
 
-    model = nn.load_model(load_type, model_file, model_type, device, **model_args)
+    model = nn.load_model(load_type, model_file, device)
     board = None
 
     def init():
@@ -87,12 +87,5 @@ if __name__ == "__main__":
         'model_file': './data/export_jit_resnet_basic-nostm_6b96fv0_00400000.pth',
         'load_type': 'jit',
         'device': 'cpu',
-        # 'model_type': 'resnet',
-        # 'model_args': {
-        #     'num_blocks': 15,
-        #     'dim_feature': 192,
-        #     'head_type': 'v0',
-        #     'input_type': 'basic-nostm',
-        # },
     }
     main(**args)
