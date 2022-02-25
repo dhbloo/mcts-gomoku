@@ -7,11 +7,12 @@ from collections import defaultdict
 class MCTS:
     "Monte Carlo tree searcher. First rollout the tree then choose a move."
 
-    def __init__(self, visit_func, c_puct=1.0, fpu_reduction=0.2):
+    def __init__(self, visit_func, random_choice=False, c_puct=1.0, fpu_reduction=0.2):
         self.Q = defaultdict(int)  # total reward of each node
         self.N = defaultdict(int)  # total visit count for each node
         self.children = dict()  # children of each node
         self.visit_func = visit_func
+        self.random_choice = random_choice
         self.c_puct = c_puct
         self.fpu_reduction = fpu_reduction
 
@@ -24,10 +25,10 @@ class MCTS:
 
         if self.N[node] == 1:
             # no child has been visited, select child with best policy prior
-            best_child = max(self.children[node], key=lambda n: node.policy(n))
+            best_child = self._choose_action(node, lambda n: node.policy(n))
         else:
             # select best child with max visits
-            best_child = max(self.children[node], key=lambda n: self.N[n])
+            best_child = self._choose_action(node, lambda n: self.N[n])
 
         Q, N = self.Q[best_child], self.N[best_child]
         return best_child, Q / N if N else 0.0, N
@@ -85,6 +86,17 @@ class MCTS:
             return q + u
 
         return max(self.children[node], key=puct)
+
+    def _choose_action(self, node, key):
+        """Choose a (randomly) best action from children of node"""
+        if self.random_choice:
+            children = [c for c in self.children[node]]
+            indices = np.arange(len(children))
+            probs = np.array([key(c) for c in children])
+            index = np.random.choice(indices, p=probs / probs.sum())
+            return children[index]
+        else:
+            return max(self.children[node], key=key)
 
 
 class Board():
