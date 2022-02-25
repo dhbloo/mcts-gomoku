@@ -1,17 +1,20 @@
 import time
-import neuralnet as nn
-import pisqpipe as pp
-from search import Board, MCTS
 
 
 def visit(model, data, device):
+    import neuralnet as nn
     value, policy = nn.eval_model(model, data, device)
     winrate = (value[0] - value[1] + 1) / 2
     return winrate, policy
 
 
 def main(model_file, load_type, device, model_type=None, model_args={}, **kwsearchargs):
+    # load modules after recording start time
     start_time = time.time()
+    import pisqpipe as pp
+    import neuralnet as nn
+    from search import Board, MCTS
+
     model = nn.load_model(load_type, model_file, model_type, device, **model_args)
     board = None
 
@@ -54,6 +57,8 @@ def main(model_file, load_type, device, model_type=None, model_args={}, **kwsear
         while not visits or time.time() - tic < turn_time:
             mcts.search(board)
             visits += 1
+            if pp.terminateAI:
+                break
         child, winrate, num_visits = mcts.choose(board)
         move = child.last_move
         toc = time.time()
@@ -89,6 +94,5 @@ if __name__ == "__main__":
         #     'head_type': 'v0',
         #     'input_type': 'basic-nostm',
         # },
-        'c_puct': 1.1,
     }
     main(**args)

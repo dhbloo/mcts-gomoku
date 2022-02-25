@@ -66,6 +66,5 @@ if __name__ == "__main__":
         'board_width': 15,
         'board_height': 15,
         'turn_time': 5,
-        'c_puct': 1.1,
     }
     test_play(**args)

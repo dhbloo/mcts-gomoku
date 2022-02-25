@@ -7,7 +7,7 @@ from collections import defaultdict
 class MCTS:
     "Monte Carlo tree searcher. First rollout the tree then choose a move."
 
-    def __init__(self, visit_func, c_puct=1.1, fpu_reduction=0.1):
+    def __init__(self, visit_func, c_puct=1.0, fpu_reduction=0.2):
         self.Q = defaultdict(int)  # total reward of each node
         self.N = defaultdict(int)  # total visit count for each node
         self.children = dict()  # children of each node
@@ -67,8 +67,10 @@ class MCTS:
         "Select a child of node, balancing exploration & exploitation"
         puct_factor = self.c_puct * math.sqrt(self.N[node])
 
-        # children_policy_sum = sum(node.policy(c) for c in self.children[node])
-        # init_q_reduction = self.fpu_reduction * math.sqrt(children_policy_sum)
+        explored_policy_sum = sum(
+            node.policy(c) for c in self.children[node] if c in self.children)
+        init_q_reduction = self.fpu_reduction * math.sqrt(explored_policy_sum)
+        init_q = (1 - self.Q[node] / self.N[node]) - init_q_reduction
 
         def puct(c):
             "Predictor upper confidence bound for trees"
@@ -77,8 +79,8 @@ class MCTS:
             if c in self.children:  # child that has been explored for at least once
                 q = self.Q[c] / self.N[c]
             else:  # child that has not been explored
-                # q = self.Q[node] / self.N[node] - init_q_reduction
-                q = 0
+                q = init_q
+                # q = 0
 
             return q + u
 
