@@ -76,7 +76,18 @@ def load_model(load_type, model_file, device):
     elif load_type == 'onnx':
         import onnxruntime as ort
 
-        session = ort.InferenceSession(model_file)
+        providers = []
+        for d in device.split(','):
+            if d == 'cpu':
+                providers.append('CPUExecutionProvider')
+            elif d == 'cuda':
+                providers.append('CUDAExecutionProvider')
+            elif d == "tensorrt":
+                providers.append('TensorrtExecutionProvider')
+            else:
+                raise RuntimeError(f'Unknown device: {d}')
+
+        session = ort.InferenceSession(model_file, providers=providers)
         used_input_names = [n.name for n in session.get_inputs()]
 
         return lambda data: eval_model_onnx(session, data, used_input_names)
